@@ -1,8 +1,12 @@
 {
- "ok": true,
- "message": "sample data",
- "events": 292,
- "pending_details": 0,
- "history_complete": true,
- "months_pending": 0
+ "ok": false,
+ "message": "수집 중 오류(직전 데이터 유지): GET failed https://opendart.fss.or.kr/api/list.json {'page_no': 1, 'bgn_de': '20240401', 'end_de': '20240430', 'pblntf_ty': 'B', 'page_count': 100, 'sort': 'date', 'sort_mth': 'asc', 'crtfc_key': '193010a829eefbc368d5cff0e673d6540e41e5a5'}: HTTPSConnectionPool(host='opendart.fss.or.kr', port=443): Read timed out. (read timeout=30)",
+ "started": "2026-09-08 20:18 KST",
+ "finished": "2026-09-08 22:38 KST",
+ "minutes": 139.3,
+ "dart_calls": 1531,
+ "events": 4785,
+ "pending_details": 3670,
+ "history_complete": false,
+ "months_pending": 4
 }
