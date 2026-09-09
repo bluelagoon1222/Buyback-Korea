@@ -346,8 +346,11 @@ RE_ACQ = re.compile(r"자기\s*주식\s*취득\s*결정")
 RE_TRUST = re.compile(r"자기\s*주식\s*취득\s*신탁\s*계약\s*체결\s*결정")
 RE_TRUST_CC = re.compile(r"자기\s*주식\s*취득\s*신탁\s*계약\s*해지\s*결정")
 RE_DISP = re.compile(r"자기\s*주식\s*처분\s*결정")
-RE_CANCEL = re.compile(r"자기\s*주식\s*소각\s*결정")
+# KIND form title is "주식소각결정" (sometimes written 자기주식소각결정) - accept both.
+RE_CANCEL = re.compile(r"(?:자기\s*)?주식\s*소각\s*결정")
 RE_VALUEUP = re.compile(r"기업\s*가치\s*제고\s*계획|밸류업")
+# bump when classification rules change so that already-scanned months are scanned again
+SCAN_VERSION = 2
 
 
 def classify(report_nm, pblntf_ty):
@@ -393,18 +396,20 @@ def parse_cancel_text(text):
         v = m.group(1).strip()
         return conv(v) if conv else v
 
-    out["shares"] = grab(r"소각할 주식의 종류와 수.*?보통주식\s*\(?주\)?\s*[:：]?\s*([\d,]{1,20})", to_int)
-    out["shares_other"] = grab(r"소각할 주식의 종류와 수.*?기타주식\s*\(?주\)?\s*[:：]?\s*([\d,]{1,20})", to_int)
-    out["total_shares"] = grab(r"발행주식총수.*?보통주식\s*\(?주\)?\s*[:：]?\s*([\d,]{1,20})", to_int)
-    out["amount"] = grab(r"소각\s*예정\s*금액\s*\(?원\)?\s*[:：]?\s*([\d,]{1,25})", to_int)
-    out["cancel_date"] = grab(r"소각\s*예정\s*일\s*[:：]?\s*(\d{4}\s*[-./년]\s*\d{1,2}\s*[-./월]\s*\d{1,2})", norm_date)
-    out["method"] = grab(r"소각할 주식의 취득\s*방법\s*[:：]?\s*(.+?)\s*(?:\d{1,2}\s*\.\s*)?소각\s*(?:목적|사유)")
-    out["purpose"] = grab(r"소각\s*(?:목적|사유)\s*[:：]?\s*(.+?)\s*(?:\d{1,2}\s*\.\s*)?이사회\s*결의일")
-    out["board_date"] = grab(r"이사회\s*결의일\s*\(?\s*결정일\s*\)?\s*[:：]?\s*(\d{4}\s*[-./년]\s*\d{1,2}\s*[-./월]\s*\d{1,2})",
+    sep = r"[\s|:：]*"
+    kind = r"소각\s*할\s*주식\s*의\s*종류\s*와\s*수"
+    out["shares"] = grab(kind + r".*?보통\s*주식\s*\(?주\)?" + sep + r"([\d,]{1,20})", to_int)
+    out["shares_other"] = grab(kind + r".*?(?:기타|종류)\s*주식\s*\(?주\)?" + sep + r"([\d,]{1,20})", to_int)
+    out["total_shares"] = grab(r"발행\s*주식\s*총\s*수.*?보통\s*주식\s*\(?주\)?" + sep + r"([\d,]{1,20})", to_int)
+    out["amount"] = grab(r"소각\s*예정\s*금액\s*\(?원\)?" + sep + r"([\d,]{1,25})", to_int)
+    out["cancel_date"] = grab(r"소각\s*예정\s*일" + sep + r"(\d{4}\s*[-./년]\s*\d{1,2}\s*[-./월]\s*\d{1,2})", norm_date)
+    out["method"] = grab(r"소각\s*할\s*주식\s*의\s*취득\s*방법" + sep + r"(.+?)\s*[|]?\s*(?:\d{1,2}\s*\.\s*)?소각\s*(?:목적|사유)")
+    out["purpose"] = grab(r"소각\s*(?:목적|사유)" + sep + r"(.+?)\s*[|]?\s*(?:\d{1,2}\s*\.\s*)?이사회\s*결의일")
+    out["board_date"] = grab(r"이사회\s*결의일\s*\(?\s*결정일\s*\)?" + sep + r"(\d{4}\s*[-./년]\s*\d{1,2}\s*[-./월]\s*\d{1,2})",
                              norm_date)
     for k in ("method", "purpose"):
         if out.get(k):
-            out[k] = re.sub(r"^[-:：\s]+", "", out[k])[:120]
+            out[k] = re.sub(r"^[-:：|\s]+|[|\s]+$", "", out[k])[:120]
     return out
 
 
@@ -436,12 +441,14 @@ def attach_detail(ev, rec):
         ev["decision_date"] = norm_date(rec.get("bddd"))
         ev["held_pct"] = _held_pct(rec)
     elif t == TRUST_CANCEL:
-        ev["amount"] = to_int(rec.get("ctr_prc"))
-        ev["period_start"] = norm_date(rec.get("ctr_pd_bgd"))
-        ev["period_end"] = norm_date(rec.get("ctr_pd_edd") or rec.get("ctr_cc_prd"))
-        ev["purpose"] = (rec.get("ctr_cc_pp") or rec.get("ctr_pp") or "").strip()[:120] or None
-        ev["method"] = "신탁계약 해지"
-        ev["broker"] = (rec.get("ctr_cns_int") or rec.get("cs_iv_bk") or "").strip()[:60] or None
+        # fields: ctr_prc_bfcc (계약금액 해지 전), ctr_prc_atcc (해지 후), ctr_pd_bfcc_bgd/edd, cc_pp, cc_int, cc_prd
+        ev["amount"] = to_int(rec.get("ctr_prc_bfcc") or rec.get("ctr_prc"))
+        ev["amount_after"] = to_int(rec.get("ctr_prc_atcc"))
+        ev["period_start"] = norm_date(rec.get("ctr_pd_bfcc_bgd") or rec.get("ctr_pd_bgd"))
+        ev["period_end"] = norm_date(rec.get("cc_prd") or rec.get("ctr_pd_bfcc_edd") or rec.get("ctr_pd_edd"))
+        ev["purpose"] = (rec.get("cc_pp") or rec.get("ctr_pp") or "").strip()[:120] or None
+        ev["method"] = "신탁계약 해지" + (" (일부)" if ev.get("amount_after") else "")
+        ev["broker"] = (rec.get("cc_int") or rec.get("ctr_cns_int") or "").strip()[:60] or None
         ev["decision_date"] = norm_date(rec.get("bddd"))
         ev["held_pct"] = _held_pct(rec)
     elif t == DISPOSAL:
@@ -573,6 +580,7 @@ def fill_details(dart, events, budget_ok):
             todo[(ev["corp_code"], ev["type"])].append(ev)
     log("detail groups:", len(todo))
     done = 0
+    mismatch_logged = 0
     for (corp_code, et), evs in todo.items():
         if not budget_ok():
             log("budget exhausted during details")
@@ -590,15 +598,37 @@ def fill_details(dart, events, budget_ok):
             log("detail failed", corp_code, et, e)
             for ev in evs:
                 ev["detail_failed"] = ev.get("detail_failed", 0) + 1
+                ev["err"] = ("api: %s" % e)[:160]
             continue
-        by_rno = {r.get("rcept_no"): r for r in recs}
+        by_rno = {str(r.get("rcept_no") or ""): r for r in recs}
+        by_date = defaultdict(list)
+        for r in recs:
+            by_date[str(r.get("rcept_no") or "")[:8]].append(r)
         for ev in evs:
             rec = by_rno.get(ev["id"])
+            if not rec:
+                # fallback: a single record filed on the same day (structured data sometimes keys differently)
+                same_day = by_date.get(ev["id"][:8]) or []
+                if len(same_day) == 1:
+                    rec = same_day[0]
+            if not rec and ev.get("amended"):
+                # amendment: fall back to the most recent earlier record (the original filing) within 90 days
+                lo = ymd(dt.date.fromisoformat(ev["date"]) - dt.timedelta(days=90)) if ev["date"] else "0"
+                earlier = sorted(k for k in by_rno if lo <= k[:8] < ev["id"][:8] or (k[:8] == ev["id"][:8] and k < ev["id"]))
+                if earlier:
+                    rec = by_rno[earlier[-1]]
+                    ev["detail_from_original"] = True
             if rec:
                 attach_detail(ev, rec)
+                ev.pop("err", None)
                 done += 1
             else:
                 ev["detail_failed"] = ev.get("detail_failed", 0) + 1
+                ev["err"] = "no matching record (api returned %d: %s)" % (
+                    len(recs), ",".join(sorted(by_rno))[:80])
+                if mismatch_logged < 15:
+                    log("detail mismatch", ev["corp"], et, ev["id"], ev["report"], "->", ev["err"])
+                    mismatch_logged += 1
     log("details attached:", done)
 
 
@@ -715,6 +745,13 @@ def finalize(events, companies):
             ev["amount_est"] = int(ev["shares"] * base)
 
 
+def count_by(items, key):
+    out = defaultdict(int)
+    for it in items:
+        out[key(it)] += 1
+    return out
+
+
 def build_latest(events, companies, today, status):
     evs = sorted(events.values(), key=lambda e: (e["date"] or "", e["id"]), reverse=True)
     monthly = defaultdict(lambda: {"acq": 0, "acq_n": 0, "cancel": 0, "cancel_n": 0, "disp": 0, "disp_n": 0,
@@ -776,6 +813,14 @@ def main():
     events = state.get("events") or {}
     companies = state.get("companies") or {}
     scanned = set(x for x in (state.get("scanned") or []) if isinstance(x, str))
+    if state.get("scan_version") != SCAN_VERSION:
+        log("classification rules changed (scan_version %s -> %s): history will be scanned again"
+            % (state.get("scan_version"), SCAN_VERSION))
+        scanned = set()
+        for ev in events.values():  # give previously failed items a fresh chance under the new rules
+            ev.pop("detail_failed", None)
+            if ev["type"] == TRUST_CANCEL:  # field mapping fixed in v2 -> fetch again
+                ev["detail_done"] = False
     log("state loaded: events=%d companies=%d scanned=%d" % (len(events), len(companies), len(scanned)))
 
     h = Http()
@@ -784,8 +829,8 @@ def main():
     status = {"ok": True, "message": "", "started": dt.datetime.now(KST).strftime("%Y-%m-%d %H:%M KST")}
 
     def checkpoint():
-        save_json(state_path, {"scanned": sorted(scanned), "events": events, "companies": companies,
-                               "updated": dt.datetime.now(KST).isoformat()}, compact=True)
+        save_json(state_path, {"scan_version": SCAN_VERSION, "scanned": sorted(scanned), "events": events,
+                               "companies": companies, "updated": dt.datetime.now(KST).isoformat()}, compact=True)
 
     try:
         # 1) current month + recent lookback window (always rescanned; cheap)
@@ -841,6 +886,12 @@ def main():
         "pending_details": sum(1 for e in events.values() if not e.get("detail_done")),
         "history_complete": all(k in scanned for k, _, _ in full_months(since, today)),
         "months_pending": sum(1 for k, _, _ in full_months(since, today) if k not in scanned),
+        "events_by_type": dict(sorted(count_by(events.values(), lambda e: e["type"]).items())),
+        "pending_by_type": dict(sorted(count_by((e for e in events.values() if not e.get("detail_done")),
+                                                lambda e: e["type"]).items())),
+        "pending_errors": dict(sorted(count_by((e for e in events.values() if not e.get("detail_done")),
+                                               lambda e: (e.get("err") or "none")[:60]).items(),
+                                      key=lambda kv: -kv[1])[:8]),
     })
     latest = build_latest(events, companies, today, status)
     save_json(os.path.join(DATA, "latest.json"), latest, compact=True)
