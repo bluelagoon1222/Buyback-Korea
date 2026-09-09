@@ -635,6 +635,7 @@ def fill_details(dart, events, budget_ok):
 def fill_cancels(dart, events, budget_ok):
     todo = [e for e in events.values() if e["type"] == CANCEL and not e.get("detail_done")
             and e.get("detail_failed", 0) < 4]
+    todo.sort(key=lambda e: e["date"] or "", reverse=True)  # newest first: most useful if the budget runs out
     log("cancel documents to parse:", len(todo))
     ok = 0
     for ev in todo:
@@ -670,10 +671,21 @@ def fill_cancels(dart, events, budget_ok):
 
 def update_prices(h, events, companies, since, today, budget_ok, skip=False):
     """Profiles (shares, sector) + daily closes -> returns and ratios."""
-    codes = sorted({e["code"] for e in events.values()})
     if skip:
         log("prices skipped by flag")
         return {}
+    # Order matters: the stage can run out of budget, so do the codes that still lack returns first,
+    # then the ones whose latest event is newest (their D+1/5/20 windows are still filling in).
+    need, rest = set(), set()
+    newest = {}
+    for e in events.values():
+        code = e["code"]
+        newest[code] = max(newest.get(code, ""), e["date"] or "")
+        (need if not e.get("ret") else rest).add(code)
+    rest -= need
+    codes = (sorted(need, key=lambda c: newest.get(c, ""), reverse=True) +
+             sorted(rest, key=lambda c: newest.get(c, ""), reverse=True))
+    log("price codes: %d (missing returns first: %d)" % (len(codes), len(need)))
     idx = {}
     for sym in ("KOSPI", "KOSDAQ"):
         try:
@@ -825,7 +837,13 @@ def main():
 
     h = Http()
     dart = Dart(h, key)
-    budget_ok = lambda: elapsed_min() < args.budget_min  # noqa
+    # Each stage gets its own slice of the budget so that a slow early stage can never starve the later
+    # ones. Fractions are cumulative deadlines: history scan 30%, details 55%, cancel documents 80%, prices 100%.
+    B = args.budget_min
+    stage = lambda frac: (lambda: elapsed_min() < B * frac)  # noqa
+    budget_ok = stage(1.0)
+    log("budget %.0f min -> scan %.0f / details %.0f / cancels %.0f / prices %.0f"
+        % (B, B * .30, B * .55, B * .80, B))
     status = {"ok": True, "message": "", "started": dt.datetime.now(KST).strftime("%Y-%m-%d %H:%M KST")}
 
     def checkpoint():
@@ -842,7 +860,7 @@ def main():
         for key_m, bgn, end in full_months(since, today):
             if key_m in scanned:
                 continue
-            if months >= args.max_months or not budget_ok():
+            if months >= args.max_months or not stage(.30)():
                 log("history scan paused; will continue next run")
                 break
             n = scan_rows(dart, bgn, end, events)
@@ -853,9 +871,9 @@ def main():
                 checkpoint()
         checkpoint()
         # 3) details
-        fill_details(dart, events, budget_ok)
+        fill_details(dart, events, stage(.55))
         checkpoint()
-        fill_cancels(dart, events, budget_ok)
+        fill_cancels(dart, events, stage(.80))
         checkpoint()
     except DartLimit as e:
         status["ok"] = False
