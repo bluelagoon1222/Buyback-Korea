@@ -1,10 +1,10 @@
 {
  "ok": true,
  "message": "",
- "started": "2026-09-09 23:43 KST",
- "finished": "2026-09-10 00:50 KST",
- "minutes": 67.0,
- "dart_calls": 2266,
+ "started": "2026-09-10 02:13 KST",
+ "finished": "2026-09-10 02:38 KST",
+ "minutes": 24.9,
+ "dart_calls": 316,
  "events": 6403,
  "pending_details": 504,
  "history_complete": true,
@@ -25,7 +25,7 @@
   "trust_cancel": 9
  },
  "pending_errors": {
-  "no matching record (api returned 0: )": 176,
+  "no matching record (api returned 0: )": 177,
   "none": 9,
   "no matching record (api returned 2: 20260401003812,202608190": 7,
   "no matching record (api returned 1: 20251124000031)": 7,
