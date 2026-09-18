@@ -1,9 +1,9 @@
 {
  "ok": true,
  "message": "",
- "started": "2026-09-18 02:41 KST",
- "finished": "2026-09-18 03:00 KST",
- "minutes": 19.1,
+ "started": "2026-09-18 10:24 KST",
+ "finished": "2026-09-18 10:44 KST",
+ "minutes": 19.6,
  "dart_calls": 25,
  "events": 6438,
  "pending_details": 505,
