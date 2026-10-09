@@ -1,9 +1,9 @@
 {
  "ok": false,
  "message": "DART 호출 한도/키 문제로 일부만 갱신: DART status 800: <?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><result><status>800</status><message>시스템 점검으로 인한  서비스가 중지 중입니다.</message></result>",
- "started": "2026-10-09 04:21 KST",
- "finished": "2026-10-09 05:13 KST",
- "minutes": 52.0,
+ "started": "2026-10-09 12:02 KST",
+ "finished": "2026-10-09 12:57 KST",
+ "minutes": 54.5,
  "dart_calls": 12,
  "events": 6566,
  "pending_details": 511,
