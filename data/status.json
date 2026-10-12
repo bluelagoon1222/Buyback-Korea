@@ -1,18 +1,18 @@
 {
- "ok": false,
- "message": "DART 호출 한도/키 문제로 일부만 갱신: DART status 800: <?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><result><status>800</status><message>시스템 점검으로 인한  서비스가 중지 중입니다.</message></result>",
- "started": "2026-10-10 03:54 KST",
- "finished": "2026-10-10 04:46 KST",
- "minutes": 51.9,
- "dart_calls": 12,
- "events": 6566,
- "pending_details": 511,
+ "ok": true,
+ "message": "",
+ "started": "2026-10-12 11:36 KST",
+ "finished": "2026-10-12 12:49 KST",
+ "minutes": 73.7,
+ "dart_calls": 15,
+ "events": 6567,
+ "pending_details": 508,
  "history_complete": true,
  "months_pending": 0,
  "events_by_type": {
   "acq_direct": 805,
   "acq_trust": 1155,
-  "cancel": 1200,
+  "cancel": 1201,
   "disposal": 1672,
   "trust_cancel": 594,
   "valueup": 1140
@@ -20,13 +20,13 @@
  "pending_by_type": {
   "acq_direct": 41,
   "acq_trust": 241,
-  "cancel": 12,
+  "cancel": 9,
   "disposal": 207,
   "trust_cancel": 10
  },
  "pending_errors": {
   "no matching record (api returned 0: )": 181,
-  "none": 12,
+  "none": 9,
   "no matching record (api returned 2: 20260401003812,202608190": 7,
   "no matching record (api returned 1: 20251124000031)": 7,
   "no matching record (api returned 1: 20240902000047)": 7,
