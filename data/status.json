@@ -1,20 +1,20 @@
 {
  "ok": true,
  "message": "",
- "started": "2026-10-23 10:49 KST",
- "finished": "2026-10-23 11:42 KST",
- "minutes": 53.4,
- "dart_calls": 30,
- "events": 6699,
+ "started": "2026-10-24 00:21 KST",
+ "finished": "2026-10-24 01:13 KST",
+ "minutes": 52.5,
+ "dart_calls": 41,
+ "events": 6708,
  "pending_details": 509,
  "history_complete": true,
  "months_pending": 0,
  "events_by_type": {
-  "acq_direct": 817,
+  "acq_direct": 819,
   "acq_trust": 1169,
-  "cancel": 1222,
+  "cancel": 1228,
   "disposal": 1680,
-  "trust_cancel": 602,
+  "trust_cancel": 603,
   "valueup": 1209
  },
  "pending_by_type": {
