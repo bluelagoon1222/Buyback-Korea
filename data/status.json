@@ -1,18 +1,18 @@
 {
  "ok": true,
  "message": "",
- "started": "2026-11-10 08:05 KST",
- "finished": "2026-11-10 09:18 KST",
- "minutes": 73.0,
- "dart_calls": 15,
- "events": 6851,
- "pending_details": 510,
+ "started": "2026-11-10 13:44 KST",
+ "finished": "2026-11-10 14:40 KST",
+ "minutes": 56.0,
+ "dart_calls": 19,
+ "events": 6855,
+ "pending_details": 512,
  "history_complete": true,
  "months_pending": 0,
  "events_by_type": {
-  "acq_direct": 844,
+  "acq_direct": 846,
   "acq_trust": 1182,
-  "cancel": 1289,
+  "cancel": 1291,
   "disposal": 1695,
   "trust_cancel": 617,
   "valueup": 1224
@@ -20,13 +20,13 @@
  "pending_by_type": {
   "acq_direct": 41,
   "acq_trust": 241,
-  "cancel": 9,
+  "cancel": 11,
   "disposal": 209,
   "trust_cancel": 10
  },
  "pending_errors": {
   "no matching record (api returned 0: )": 183,
-  "none": 9,
+  "none": 11,
   "no matching record (api returned 2: 20260401003812,202608190": 7,
   "no matching record (api returned 1: 20251124000031)": 7,
   "no matching record (api returned 1: 20240902000047)": 7,
